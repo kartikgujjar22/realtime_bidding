@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.pnpm-store/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase Admin SDK service account key (as specified in .env)
+# This file contains sensitive credentials and should NEVER be committed.
+firebase-service-account.json
+
+# Multer temporary upload directory
+uploads/
+
+# Build artifacts
+dist/
+build/
+
+# IDE and OS specific files
+.vscode/        # VS Code settings (optional, but often useful to ignore)
+.idea/          # IntelliJ IDEA files
+.DS_Store       # macOS specific
+Thumbs.db       # Windows specific
+
+# Logs
+*.log

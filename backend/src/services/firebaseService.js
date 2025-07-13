@@ -16,7 +16,7 @@ const initializeFirebase = () => {
       // Use the service account file directly
       const serviceAccountPath = path.resolve(
         __dirname,
-        "../../realtime-bidding-a07c4-firebase-adminsdk-fbsvc-61abfa53b3.json"
+        "../../firebase-service-account.json"
       );
 
       if (!fs.existsSync(serviceAccountPath)) {

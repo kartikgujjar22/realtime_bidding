@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
-import { db } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  getDocs,
-  startAfter,
-  query as firestoreQuery
-} from 'firebase/firestore';
+import { auctionService } from '../services/auctionService.js';
 
 const Home = () => {
   const { currentUser } = useAuth();
@@ -19,7 +9,6 @@ const Home = () => {
   const [featuredAuctions, setFeaturedAuctions] = useState([]);
   const [recentAuctions, setRecentAuctions] = useState([]);
   const [endingSoonAuctions, setEndingSoonAuctions] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('ending-soon');
@@ -47,58 +36,62 @@ const Home = () => {
       setLoading(true);
       const now = new Date();
 
-      // Build query based on filters
-      let q = firestoreQuery(
-        collection(db, 'auctions'),
-        where('status', '==', 'active')
-      );
-
-      // Add category filter if selected
-      if (selectedCategory) {
-        q = firestoreQuery(q, where('category', '==', selectedCategory));
-      }
-
-      // Add sorting
-      if (sortBy === 'ending-soon') {
-        q = firestoreQuery(q, orderBy('endDate', 'asc'));
-      } else if (sortBy === 'price-low') {
-        q = firestoreQuery(q, orderBy('currentPrice', 'asc'));
-      } else if (sortBy === 'price-high') {
-        q = firestoreQuery(q, orderBy('currentPrice', 'desc'));
-      } else if (sortBy === 'newest') {
-        q = firestoreQuery(q, orderBy('createdAt', 'desc'));
-      }
-
-      // Limit results
-      q = firestoreQuery(q, limit(20));
-
-      const querySnapshot = await getDocs(q);
-      const auctions = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      // Filter auctions that haven't ended
-      const activeAuctions = auctions.filter(auction => {
-        const endDate = auction.endDate.toDate();
+      // Get all auctions
+      const allAuctions = await auctionService.getAllAuctions();
+      
+      // Filter active auctions that haven't ended
+      const activeAuctions = allAuctions.filter(auction => {
+        if (auction.status !== 'active') return false;
+        if (!auction.endDate) return true; // If no end date, consider it active
+        const endDate = auction.endDate.toDate ? auction.endDate.toDate() : new Date(auction.endDate);
         return endDate > now;
       });
 
+      // Filter by category if selected
+      const filteredAuctions = selectedCategory 
+        ? activeAuctions.filter(auction => auction.category === selectedCategory)
+        : activeAuctions;
+
+      // Sort auctions
+      let sortedAuctions = [...filteredAuctions];
+      if (sortBy === 'ending-soon') {
+        sortedAuctions.sort((a, b) => {
+          const aEnd = a.endDate?.toDate ? a.endDate.toDate() : new Date(a.endDate || 0);
+          const bEnd = b.endDate?.toDate ? b.endDate.toDate() : new Date(b.endDate || 0);
+          return aEnd - bEnd;
+        });
+      } else if (sortBy === 'price-low') {
+        sortedAuctions.sort((a, b) => a.currentBid - b.currentBid);
+      } else if (sortBy === 'price-high') {
+        sortedAuctions.sort((a, b) => b.currentBid - a.currentBid);
+      } else if (sortBy === 'newest') {
+        sortedAuctions.sort((a, b) => {
+          const aCreated = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+          const bCreated = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+          return bCreated - aCreated;
+        });
+      }
+
       // Separate auctions by type
-      const endingSoon = activeAuctions
+      const endingSoon = sortedAuctions
         .filter(auction => {
-          const endDate = auction.endDate.toDate();
+          if (!auction.endDate) return false;
+          const endDate = auction.endDate.toDate ? auction.endDate.toDate() : new Date(auction.endDate);
           const timeLeft = endDate - now;
           return timeLeft < 24 * 60 * 60 * 1000; // Less than 24 hours
         })
         .slice(0, 6);
 
-      const recent = activeAuctions
-        .sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate())
+      const recent = sortedAuctions
+        .sort((a, b) => {
+          const aCreated = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+          const bCreated = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+          return bCreated - aCreated;
+        })
         .slice(0, 6);
 
-      const featured = activeAuctions
-        .filter(auction => auction.currentPrice > 100) // Featured items over $100
+      const featured = sortedAuctions
+        .filter(auction => auction.currentBid > 100) // Featured items over $100
         .slice(0, 6);
 
       setEndingSoonAuctions(endingSoon);
@@ -120,8 +113,10 @@ const Home = () => {
   };
 
   const formatTimeLeft = (endDate) => {
+    if (!endDate) return 'No end date';
+    
     const now = new Date();
-    const end = endDate.toDate();
+    const end = endDate.toDate ? endDate.toDate() : new Date(endDate);
     const timeLeft = end - now;
 
     if (timeLeft <= 0) return 'Ended';
@@ -136,8 +131,10 @@ const Home = () => {
   };
 
   const getTimeLeftColor = (endDate) => {
+    if (!endDate) return 'text-gray-600';
+    
     const now = new Date();
-    const end = endDate.toDate();
+    const end = endDate.toDate ? endDate.toDate() : new Date(endDate);
     const timeLeft = end - now;
 
     if (timeLeft <= 0) return 'text-red-600';
@@ -178,16 +175,16 @@ const Home = () => {
         
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold text-blue-600">
-            {formatPrice(auction.currentPrice)}
+            {formatPrice(auction.currentBid)}
           </span>
           <span className="text-xs text-gray-500 capitalize">
             {auction.category || 'Uncategorized'}
           </span>
         </div>
         
-        {auction.bids && auction.bids.length > 0 && (
+        {auction.totalBids > 0 && (
           <p className="text-xs text-gray-500 mt-2">
-            {auction.bids.length} bid{auction.bids.length !== 1 ? 's' : ''}
+            {auction.totalBids} bid{auction.totalBids !== 1 ? 's' : ''}
           </p>
         )}
       </div>
@@ -204,18 +201,37 @@ const Home = () => {
           Bid on amazing items in real-time. Every second counts!
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            to="/create-auction"
-            className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-          >
-            Create Auction
-          </Link>
-          <Link
-            to="/dashboard"
-            className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
-          >
-            My Dashboard
-          </Link>
+          {currentUser ? (
+            <>
+              <Link
+                to="/create-auction"
+                className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              >
+                Create Auction
+              </Link>
+              <Link
+                to="/dashboard"
+                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+              >
+                My Dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/register"
+                className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              >
+                Get Started
+              </Link>
+              <Link
+                to="/login"
+                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+              >
+                Sign In
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </div>

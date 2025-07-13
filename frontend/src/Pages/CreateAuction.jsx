@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
-import { db, storage } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auctionService } from '../services/auctionService.js';
 
 const CreateAuction = () => {
   const navigate = useNavigate();
@@ -116,25 +116,17 @@ const CreateAuction = () => {
         title: formData.title.trim(),
         description: formData.description.trim(),
         startingPrice: parseFloat(formData.startingPrice),
-        currentPrice: parseFloat(formData.startingPrice),
         minimumBidIncrement: parseFloat(formData.minimumBidIncrement),
         endDate: endDateTime,
         category: formData.category,
         condition: formData.condition,
-        imageURL: imageURL,
-        createdBy: currentUser.uid,
-        createdByEmail: currentUser.email,
-        createdByDisplayName: currentUser.displayName || currentUser.email,
-        status: 'active',
-        bids: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        imageURL: imageURL
       };
 
-      const docRef = await addDoc(collection(db, 'auctions'), auctionData);
+      const createdAuction = await auctionService.createAuction(auctionData, currentUser.uid);
       
       setLoading(false);
-      navigate(`/auction/${docRef.id}`);
+      navigate(`/auction/${createdAuction.id}`);
     } catch (error) {
       console.error('Error creating auction:', error);
       setError('Failed to create auction. Please try again.');

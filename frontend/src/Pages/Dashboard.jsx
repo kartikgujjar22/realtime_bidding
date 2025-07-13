@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
-import { db } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  getDocs, 
-  doc, 
-  updateDoc,
-  deleteDoc 
-} from 'firebase/firestore';
+import { auctionService } from '../services/auctionService.js';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -45,43 +35,26 @@ const Dashboard = () => {
       setLoading(true);
       
       // Load user's auctions
-      const auctionsQuery = query(
-        collection(db, 'auctions'),
-        where('createdBy', '==', currentUser.uid),
-        orderBy('createdAt', 'desc')
-      );
-      const auctionsSnapshot = await getDocs(auctionsQuery);
-      const auctions = auctionsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const auctions = await auctionService.getAuctionsByUser(currentUser.uid);
       setMyAuctions(auctions);
 
       // Load user's bids
-      const bidsQuery = query(
-        collection(db, 'bids'),
-        where('bidderId', '==', currentUser.uid),
-        orderBy('createdAt', 'desc')
-      );
-      const bidsSnapshot = await getDocs(bidsQuery);
-      const bids = bidsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const bids = await auctionService.getBidsForUser(currentUser.uid);
       setMyBids(bids);
 
       // Load won auctions (auctions where user is the highest bidder and auction has ended)
+      const now = new Date();
       const wonAuctionsData = auctions.filter(auction => {
-        const now = new Date();
-        const endDate = auction.endDate.toDate();
-        return endDate < now && auction.currentBidder === currentUser.uid;
+        if (!auction.endDate) return false;
+        const endDate = auction.endDate.toDate ? auction.endDate.toDate() : new Date(auction.endDate);
+        return endDate < now && auction.status === 'ended';
       });
       setWonAuctions(wonAuctionsData);
 
       // Calculate stats
       const activeAuctions = auctions.filter(auction => {
-        const now = new Date();
-        const endDate = auction.endDate.toDate();
+        if (!auction.endDate) return false;
+        const endDate = auction.endDate.toDate ? auction.endDate.toDate() : new Date(auction.endDate);
         return endDate > now && auction.status === 'active';
       });
 
@@ -101,10 +74,7 @@ const Dashboard = () => {
 
   const handleEndAuction = async (auctionId) => {
     try {
-      await updateDoc(doc(db, 'auctions', auctionId), {
-        status: 'ended',
-        updatedAt: new Date()
-      });
+      await auctionService.updateAuctionStatus(auctionId, 'ended');
       loadDashboardData(); // Reload data
     } catch (error) {
       console.error('Error ending auction:', error);
@@ -114,7 +84,7 @@ const Dashboard = () => {
   const handleDeleteAuction = async (auctionId) => {
     if (window.confirm('Are you sure you want to delete this auction?')) {
       try {
-        await deleteDoc(doc(db, 'auctions', auctionId));
+        await auctionService.deleteAuction(auctionId);
         loadDashboardData(); // Reload data
       } catch (error) {
         console.error('Error deleting auction:', error);
@@ -124,7 +94,8 @@ const Dashboard = () => {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
-    return timestamp.toDate().toLocaleDateString('en-US', {
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -141,10 +112,12 @@ const Dashboard = () => {
   };
 
   const getAuctionStatus = (auction) => {
-    const now = new Date();
-    const endDate = auction.endDate.toDate();
-    
     if (auction.status === 'ended') return 'Ended';
+    
+    const now = new Date();
+    if (!auction.endDate) return 'Active';
+    
+    const endDate = auction.endDate.toDate ? auction.endDate.toDate() : new Date(auction.endDate);
     if (endDate < now) return 'Expired';
     return 'Active';
   };
@@ -323,7 +296,7 @@ const Dashboard = () => {
                         
                         <div className="flex justify-between items-center mb-3">
                           <span className="text-lg font-bold text-blue-600">
-                            {formatPrice(auction.currentPrice)}
+                            {formatPrice(auction.currentBid)}
                           </span>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(getAuctionStatus(auction))}`}>
                             {getAuctionStatus(auction)}
@@ -383,9 +356,9 @@ const Dashboard = () => {
                     <div key={bid.id} className="bg-white border rounded-lg p-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-semibold text-gray-800">{bid.auctionTitle}</h3>
-                          <p className="text-sm text-gray-600">Bid: {formatPrice(bid.amount)}</p>
-                          <p className="text-xs text-gray-500">{formatDate(bid.createdAt)}</p>
+                          <h3 className="font-semibold text-gray-800">{bid.auctionTitle || 'Auction'}</h3>
+                          <p className="text-sm text-gray-600">Bid: {formatPrice(bid.bidAmount)}</p>
+                          <p className="text-xs text-gray-500">{formatDate(bid.bidTime)}</p>
                         </div>
                         <Link
                           to={`/auction/${bid.auctionId}`}
@@ -431,7 +404,7 @@ const Dashboard = () => {
                         
                         <div className="flex justify-between items-center mb-3">
                           <span className="text-lg font-bold text-green-600">
-                            Won for {formatPrice(auction.currentPrice)}
+                            Won for {formatPrice(auction.currentBid)}
                           </span>
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-600">
                             Won

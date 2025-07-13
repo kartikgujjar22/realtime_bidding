@@ -13,10 +13,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Import auth routes
+const authRoutes = require("./routes/auth");
+
 // Example route
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Realtime Bidding API!" });
 });
+
+// Mount auth routes
+app.use("/api/auth", authRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

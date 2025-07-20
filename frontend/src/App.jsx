@@ -15,7 +15,7 @@ function App() {
       <Router>
         <div className="bg-gray-50">
           <Navbar />
-          <main className="container">
+          <main className="">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />

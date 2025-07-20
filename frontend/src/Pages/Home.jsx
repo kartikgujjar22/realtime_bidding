@@ -13,7 +13,6 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('ending-soon');
 
-  // Categories for filtering
   const categoryOptions = [
     { value: '', label: 'All Categories' },
     { value: 'electronics', label: 'Electronics' },
@@ -35,24 +34,19 @@ const Home = () => {
     try {
       setLoading(true);
       const now = new Date();
-
-      // Get all auctions
       const allAuctions = await auctionService.getAllAuctions();
-      
-      // Filter active auctions that haven't ended
+
       const activeAuctions = allAuctions.filter(auction => {
         if (auction.status !== 'active') return false;
-        if (!auction.endDate) return true; // If no end date, consider it active
+        if (!auction.endDate) return true;
         const endDate = auction.endDate.toDate ? auction.endDate.toDate() : new Date(auction.endDate);
         return endDate > now;
       });
 
-      // Filter by category if selected
-      const filteredAuctions = selectedCategory 
+      const filteredAuctions = selectedCategory
         ? activeAuctions.filter(auction => auction.category === selectedCategory)
         : activeAuctions;
 
-      // Sort auctions
       let sortedAuctions = [...filteredAuctions];
       if (sortBy === 'ending-soon') {
         sortedAuctions.sort((a, b) => {
@@ -72,13 +66,12 @@ const Home = () => {
         });
       }
 
-      // Separate auctions by type
       const endingSoon = sortedAuctions
         .filter(auction => {
           if (!auction.endDate) return false;
           const endDate = auction.endDate.toDate ? auction.endDate.toDate() : new Date(auction.endDate);
           const timeLeft = endDate - now;
-          return timeLeft < 24 * 60 * 60 * 1000; // Less than 24 hours
+          return timeLeft < 24 * 60 * 60 * 1000;
         })
         .slice(0, 6);
 
@@ -91,13 +84,12 @@ const Home = () => {
         .slice(0, 6);
 
       const featured = sortedAuctions
-        .filter(auction => auction.currentBid > 100) // Featured items over $100
+        .filter(auction => auction.currentBid > 100)
         .slice(0, 6);
 
       setEndingSoonAuctions(endingSoon);
       setRecentAuctions(recent);
       setFeaturedAuctions(featured);
-
     } catch (error) {
       console.error('Error loading auctions:', error);
     } finally {
@@ -114,17 +106,14 @@ const Home = () => {
 
   const formatTimeLeft = (endDate) => {
     if (!endDate) return 'No end date';
-    
+
     const now = new Date();
     const end = endDate.toDate ? endDate.toDate() : new Date(endDate);
     const timeLeft = end - now;
-
     if (timeLeft <= 0) return 'Ended';
-
     const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
     const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-
     if (days > 0) return `${days}d ${hours}h left`;
     if (hours > 0) return `${hours}h ${minutes}m left`;
     return `${minutes}m left`;
@@ -132,21 +121,20 @@ const Home = () => {
 
   const getTimeLeftColor = (endDate) => {
     if (!endDate) return 'text-gray-600';
-    
+
     const now = new Date();
     const end = endDate.toDate ? endDate.toDate() : new Date(endDate);
     const timeLeft = end - now;
-
     if (timeLeft <= 0) return 'text-red-600';
-    if (timeLeft < 60 * 60 * 1000) return 'text-red-600'; // Less than 1 hour
-    if (timeLeft < 24 * 60 * 60 * 1000) return 'text-orange-600'; // Less than 24 hours
+    if (timeLeft < 60 * 60 * 1000) return 'text-red-600';
+    if (timeLeft < 24 * 60 * 60 * 1000) return 'text-orange-600';
     return 'text-green-600';
   };
 
   const AuctionCard = ({ auction }) => (
-    <Link 
+    <Link
       to={`/auction/${auction.id}`}
-      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden"
+      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden block"
     >
       <div className="relative">
         {auction.imageURL ? (
@@ -154,6 +142,7 @@ const Home = () => {
             src={auction.imageURL}
             alt={auction.title}
             className="w-full h-48 object-cover"
+            loading="lazy"
           />
         ) : (
           <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
@@ -168,11 +157,11 @@ const Home = () => {
           </span>
         </div>
       </div>
-      
+
       <div className="p-4">
         <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2">{auction.title}</h3>
         <p className="text-gray-600 text-sm mb-3 line-clamp-2">{auction.description}</p>
-        
+
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold text-blue-600">
             {formatPrice(auction.currentBid)}
@@ -181,7 +170,7 @@ const Home = () => {
             {auction.category || 'Uncategorized'}
           </span>
         </div>
-        
+
         {auction.totalBids > 0 && (
           <p className="text-xs text-gray-500 mt-2">
             {auction.totalBids} bid{auction.totalBids !== 1 ? 's' : ''}
@@ -249,7 +238,7 @@ const Home = () => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        
+
         <div>
           <select
             value={selectedCategory}
@@ -263,7 +252,7 @@ const Home = () => {
             ))}
           </select>
         </div>
-        
+
         <div>
           <select
             value={sortBy}
@@ -290,14 +279,10 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
       <HeroSection />
-
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Search and Filter */}
         <SearchAndFilterSection />
 
-        {/* Ending Soon Section */}
         {endingSoonAuctions.length > 0 && (
           <section className="mb-12">
             <div className="flex justify-between items-center mb-6">
@@ -306,7 +291,7 @@ const Home = () => {
                 View All →
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {endingSoonAuctions.map(auction => (
                 <AuctionCard key={auction.id} auction={auction} />
               ))}
@@ -314,7 +299,6 @@ const Home = () => {
           </section>
         )}
 
-        {/* Featured Auctions */}
         {featuredAuctions.length > 0 && (
           <section className="mb-12">
             <div className="flex justify-between items-center mb-6">
@@ -323,7 +307,7 @@ const Home = () => {
                 View All →
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {featuredAuctions.map(auction => (
                 <AuctionCard key={auction.id} auction={auction} />
               ))}
@@ -331,7 +315,6 @@ const Home = () => {
           </section>
         )}
 
-        {/* Recent Auctions */}
         {recentAuctions.length > 0 && (
           <section className="mb-12">
             <div className="flex justify-between items-center mb-6">
@@ -340,7 +323,7 @@ const Home = () => {
                 View All →
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {recentAuctions.map(auction => (
                 <AuctionCard key={auction.id} auction={auction} />
               ))}
@@ -348,7 +331,6 @@ const Home = () => {
           </section>
         )}
 
-        {/* Empty State */}
         {endingSoonAuctions.length === 0 && featuredAuctions.length === 0 && recentAuctions.length === 0 && (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,7 +338,7 @@ const Home = () => {
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No auctions found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {selectedCategory 
+              {selectedCategory
                 ? `No auctions found in ${categoryOptions.find(c => c.value === selectedCategory)?.label}`
                 : 'Get started by creating the first auction.'
               }
@@ -374,7 +356,6 @@ const Home = () => {
           </div>
         )}
 
-        {/* Call to Action */}
         {currentUser && (
           <section className="bg-white rounded-lg shadow-md p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Ready to Start Bidding?</h2>

@@ -15,6 +15,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Import auth routes
 const authRoutes = require("./routes/auth");
+const uploadRoutes = require("./routes/upload");
+const auctionRoutes = require("./routes/auctions");
 
 // Example route
 app.get("/", (req, res) => {
@@ -23,6 +25,8 @@ app.get("/", (req, res) => {
 
 // Mount auth routes
 app.use("/api/auth", authRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/auctions", auctionRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

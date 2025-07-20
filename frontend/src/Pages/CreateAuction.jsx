@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
-import { storage } from '../lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auctionService } from '../services/auctionService.js';
+import axios from 'axios';
+import { auth } from '../lib/firebase.js';
 
 const CreateAuction = () => {
   const navigate = useNavigate();
@@ -52,11 +52,24 @@ const CreateAuction = () => {
 
   const uploadImage = async (file) => {
     if (!file) return null;
-    
-    const storageRef = ref(storage, `auction-images/${Date.now()}-${file.name}`);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await axios.post('/api/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return res.data.imageUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setError('Image upload failed. Please try again.');
+      throw error; // Re-throw to be caught by handleSubmit
+    }
   };
 
   const validateForm = () => {
@@ -123,10 +136,15 @@ const CreateAuction = () => {
         imageURL: imageURL
       };
 
-      const createdAuction = await auctionService.createAuction(auctionData, currentUser.uid);
+      const token = await auth.currentUser.getIdToken();
+      const res = await axios.post('/api/auctions', auctionData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       
       setLoading(false);
-      navigate(`/auction/${createdAuction.id}`);
+      navigate(`/auction/${res.data.id}`);
     } catch (error) {
       console.error('Error creating auction:', error);
       setError('Failed to create auction. Please try again.');

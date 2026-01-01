@@ -62,6 +62,41 @@ const createAuction = async (req, res) => {
   }
 };
 
+const getAllAuctions = async (req, res) => {
+  try {
+    const auctionsSnapshot = await db
+      .collection("auctions")
+      .orderBy("createdAt", "desc")
+      .get();
+    const auctions = auctionsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(auctions);
+  } catch (error) {
+    console.error("Error fetching auctions:", error);
+    res.status(500).json({ message: "Error fetching auctions." });
+  }
+};
+
+const getAuctionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const auctionDoc = await db.collection("auctions").doc(id).get();
+
+    if (!auctionDoc.exists) {
+      return res.status(404).json({ message: "Auction not found." });
+    }
+
+    res.status(200).json({ id: auctionDoc.id, ...auctionDoc.data() });
+  } catch (error) {
+    console.error("Error fetching auction:", error);
+    res.status(500).json({ message: "Error fetching auction." });
+  }
+};
+
 module.exports = {
   createAuction,
+  getAllAuctions,
+  getAuctionById,
 };

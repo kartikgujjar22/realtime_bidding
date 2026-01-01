@@ -32,3 +32,5 @@ Thumbs.db       # Windows specific
 
 # Logs
 *.log
+
+/src/generated/prisma

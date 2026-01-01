@@ -1,0 +1,59 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. User Model (Bidders and Sellers)
+model User {
+  id             Int       @id @default(autoincrement())
+  username       String
+  email          String    @unique
+  password_hash  String
+  wallet_balance Decimal   @default(0.00) @db.Decimal(10, 2)
+  created_at     DateTime  @default(now())
+
+  // Relationships
+  products       Product[] // A user can sell multiple products
+  bids           Bid[]     // A user can place multiple bids
+}
+
+// 2. Product Model (Items for sale)
+model Product {
+  id             Int       @id @default(autoincrement())
+  title          String
+  description    String?
+  image_url      String?
+  starting_price Decimal   @db.Decimal(10, 2)
+  current_price  Decimal   @default(0.00) @db.Decimal(10, 2)
+  bid_increment  Decimal   @default(5.00) @db.Decimal(10, 2)
+  end_time       DateTime
+  is_active      Boolean   @default(true)
+  created_at     DateTime  @default(now())
+
+  // Relation to User (Seller)
+  sellerId       Int
+  seller         User      @relation(fields: [sellerId], references: [id])
+
+  // Relation to Bids
+  bids           Bid[]
+}
+
+// 3. Bid Model
+model Bid {
+  id             Int      @id @default(autoincrement())
+  amount         Decimal  @db.Decimal(10, 2)
+  created_at     DateTime @default(now())
+
+  // Relationships
+  productId      Int
+  product        Product  @relation(fields: [productId], references: [id])
+
+  bidderId       Int
+  bidder         User     @relation(fields: [bidderId], references: [id])
+}

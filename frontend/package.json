@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
     "@vitejs/plugin-react-swc": "^3.10.2",
     "axios": "^1.10.0",
     "firebase": "^10.12.3",

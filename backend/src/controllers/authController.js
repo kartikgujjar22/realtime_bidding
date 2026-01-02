@@ -1,68 +1,98 @@
-const { auth, createUserDocument } = require("../services/firebaseService");
+const bycrpt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const prisma = require("../prismaClient");
+const dotenv = require("dotenv");
+const logger = require("../../logger");
+const cookieParser = require("cookie-parser");
+const path = require("path");
 
-const register = async (req, res, next) => {
-  const { email, password, displayName } = req.body;
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-  if (!email || !password || !displayName) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+//helper function to generate JWT
+const generateToken = (id) => {
+  logger.info("Generating JWT token");
+  logger.info("This is the JWT SECRET USED:", process.env.JWT_SECRET);
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "24h",
+  });
+};
+
+const registerUser = async (req, res) => {
+  const { username, email, password } = req.body;
 
   try {
-    const userRecord = await auth.createUser({
-      email,
-      password,
-      displayName,
-    });
+    logger.info("Checking existing user...");
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: "User already exists" });
+    }
 
-    // Create a user document in Firestore
-    await createUserDocument(userRecord.uid, {
-      email,
-      displayName,
+    logger.info("Hashing password...");
+    const salt = await bycrpt.genSalt(10);
+    const hashedPassword = await bycrpt.hash(password, salt);
+    logger.info("Creating new user...");
+    const newUser = await prisma.user.create({
+      data: { username, email, password: hashedPassword },
     });
-
+    logger.info("User registered successfully:", newUser.id);
     res.status(201).json({
       message: "User registered successfully",
-      user: {
-        uid: userRecord.uid,
-        email: userRecord.email,
-        displayName: userRecord.displayName,
-      },
+      id: newUser.id,
+      Username: newUser.name,
+      token: generateToken(newUser.id),
     });
   } catch (error) {
-    console.error("Error registering user:", error);
-    if (error.code === "auth/email-already-exists") {
-      return res.status(409).json({ error: "Email already in use" });
-    }
-    res.status(500).json({ error: "Failed to register user" });
+    res.status(500).json({ error: "Internal Server error" });
   }
 };
 
-const login = async (req, res) => {
-  const { idToken } = req.body;
-
-  if (!idToken) {
-    return res.status(401).json({ error: "Unauthorized: Missing ID token" });
-  }
+const loginUser = async (req, res) => {
+  const { email, password } = req.body;
 
   try {
-    const decodedToken = await auth.verifyIdToken(idToken);
-    const user = await auth.getUser(decodedToken.uid);
+    logger.info("Finding user for login...");
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
+
+    logger.info("Comparing passwords...");
+    const isMatch = await bycrpt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
+
+    const token = generateToken(user.id);
+    logger.info("Login successful for user:", user.id);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+    });
 
     res.status(200).json({
-      message: "User logged in successfully",
-      user: {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-      },
+      message: "Login successful",
+      id: user.id,
+      token: token,
     });
   } catch (error) {
-    console.error("Error verifying ID token:", error);
-    res.status(401).json({ error: "Unauthorized: Invalid ID token" });
+    res.status(500).json({ error: "Internal Server error" });
   }
 };
 
-module.exports = {
-  register,
-  login,
+const logoutUser = (req, res) => {
+  // Clear the cookie by setting it to expire immediately
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+
+  res.status(200).json({ message: "Logged out successfully" });
+};
+
+exports = module.exports = {
+  registerUser,
+  loginUser,
+  logoutUser,
 };

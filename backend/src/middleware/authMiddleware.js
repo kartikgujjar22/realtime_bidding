@@ -1,24 +1,44 @@
-const { auth } = require("../services/firebaseService");
+// backend/middleware/authMiddleware.js
+const jwt = require("jsonwebtoken");
+const prisma = require("../prismaClient");
 
-const authMiddleware = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+const protect = async (req, res, next) => {
+  let token;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res
-      .status(401)
-      .json({ message: "Unauthorized: No token provided." });
+  // 1. Check Cookies (Web Browser Strategy)
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+  // 2. Check Authorization Header
+  // If a header exists, it overrides the cookie (useful for testing)
+  else if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
-  const idToken = authHeader.split("Bearer ")[1];
+  // 3. Verify whatever token we found
+  if (!token) {
+    return res.status(401).json({ error: "Not authorized, no token" });
+  }
 
   try {
-    const decodedToken = await auth.verifyIdToken(idToken);
-    req.user = decodedToken;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, username: true, email: true, wallet_balance: true }, // Don't return password
+    });
+
+    if (!req.user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
     next();
   } catch (error) {
-    console.error("Error verifying auth token:", error);
-    return res.status(403).json({ message: "Forbidden: Invalid token." });
+    console.error(error);
+    res.status(401).json({ error: "Not authorized, token failed" });
   }
 };
 
-module.exports = authMiddleware;
+module.exports = { protect };

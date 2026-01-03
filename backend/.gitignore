@@ -34,3 +34,8 @@ Thumbs.db       # Windows specific
 *.log
 
 /src/generated/prisma
+
+#Logs
+logs/
+*.log
+npm-debug.log*

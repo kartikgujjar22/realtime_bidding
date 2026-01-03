@@ -1,11 +1,12 @@
 {
   "name": "realtime_bidding-backend",
   "version": "1.0.0",
-  "description": "Backend for Realtime Bidding platform using Node.js, Express, and Firebase.",
-  "main": "src/server.js",
+  "description": "Backend for Realtime Bidding platform using Node.js, Express, and Supabase.",
+  "main": "src/app.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "start": "node src/app.js | pino-pretty",
+    "dev": "nodemon src/app.js | pino-pretty",
+    "prisma": "prisma"
   },
   "keywords": [],
   "author": "",

@@ -4,15 +4,27 @@ const jwt = require("jsonwebtoken");
 const prisma = require("../prismaClient");
 const path = require("path");
 const logger = require("../../logger");
+const Joi = require("joi");
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
+const tokenExpiry = process.env.JWT_TOKEN_EXPIRES_IN || "1d";
+logger.info(`JWT Token Expiry set to: ${tokenExpiry}`);
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "24h",
+    expiresIn: tokenExpiry,
   });
 };
 
 const registerUser = async (req, res) => {
+  const schema = Joi.object({
+    username: Joi.string().min(3).max(30).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(6).required(),
+  });
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
   const { username, email, password } = req.body;
 
   try {
@@ -63,6 +75,14 @@ const registerUser = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().min(6).required(),
+  });
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
   const { email, password } = req.body;
 
   try {

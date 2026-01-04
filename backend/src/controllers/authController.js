@@ -79,8 +79,10 @@ const loginUser = async (req, res) => {
     email: Joi.string().email().required(),
     password: Joi.string().min(6).required(),
   });
+  logger.info("Validating login request body");
   const { error } = schema.validate(req.body);
   if (error) {
+    logger.info("Login validation failed", { error: error.details[0].message });
     return res.status(400).json({ error: error.details[0].message });
   }
   const { email, password } = req.body;
@@ -88,20 +90,31 @@ const loginUser = async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      logger.info("User not found during login", { email });
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
+    logger.info("Password comparison result", { isMatch });
     if (!isMatch) {
+      logger.info("Invalid password attempt", { email });
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
+    logger.info("User logged in successfully", {
+      userId: user.id,
+      email: user.email,
+    });
     const token = generateToken(user.id);
+    logger.info("Token generated for logged in user", { userId: user.id });
+
+    // Set token in HTTP-only cookie
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "development",
     });
+    logger.info("Token cookie set for logged in user", { userId: user.id });
 
     res.status(200).json({
       message: "Login successful",

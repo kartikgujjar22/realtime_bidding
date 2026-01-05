@@ -1,41 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import Cookies from "js-cookie";
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Import the hook
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  
   const navigate = useNavigate();
-  const location = useLocation(); // Hook to detect page changes
+  
+  // Get user data and logout function directly from the Global Context
+  const { user, logout } = useAuth(); 
 
-  // Check login status whenever the route changes
-  // Check login status whenever the route changes
-  useEffect(() => {
-    const token = Cookies.get('token');
-    const storedUser = localStorage.getItem('user');
-    if (token && storedUser !==  undefined) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Corrupt user data found, clearing...", error);
-        handleLogout();
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-  }, [location]);
-
-  const handleLogout = () => {
-    // 1. Remove Token from Cookie
-    Cookies.remove('token');
-    
-    // 2. Clear User Data from Storage
-    localStorage.removeItem('user');
-    
-    // 3. Reset State & Redirect
-    setUser(null);
+  const handleLogoutClick = () => {
+    logout();
     navigate('/');
   };
 
@@ -60,18 +35,18 @@ const Navbar = () => {
               <NavLink to="/auctions">Auctions</NavLink>
               <NavLink to="/about">About_Us</NavLink>
 
-              {/* CONDITIONAL RENDERING STARTS HERE */}
+              {/* CONDITIONAL RENDERING: CHECK CONTEXT USER */}
               {user ? (
                 <>
                   <NavLink to="/create-auction">Sell_Item</NavLink>
                   
                   {/* Logged In User Badge */}
                   <div className="flex items-center gap-4 ml-4 pl-4 border-l-4 border-retro-orange">
-                    <span className="text-retro-cream uppercase text-sm">
+                    <span className="text-retro-cream uppercase text-sm font-mono tracking-tighter">
                       OP: {user.username || 'USER'}
                     </span>
                     <button 
-                      onClick={handleLogout}
+                      onClick={handleLogoutClick}
                       className="bg-retro-red text-white px-4 py-1 border-2 border-retro-cream shadow-hard hover:translate-y-1 hover:shadow-none hover:bg-red-700 transition-all uppercase text-sm"
                     >
                       Logout
@@ -120,8 +95,8 @@ const Navbar = () => {
               <>
                 <MobileNavLink to="/create-auction">Sell_Item</MobileNavLink>
                 <div className="border-t-2 border-retro-orange my-2 pt-2">
-                   <p className="text-retro-cream px-3 mb-2">USER: {user.username}</p>
-                   <button onClick={handleLogout} className="w-full text-left text-retro-red hover:bg-retro-cream block px-3 py-2 text-xl font-bold border-l-4 border-transparent">
+                   <p className="text-retro-cream px-3 mb-2 font-mono">USER: {user.username}</p>
+                   <button onClick={handleLogoutClick} className="w-full text-left text-retro-red hover:bg-retro-cream block px-3 py-2 text-xl font-bold border-l-4 border-transparent">
                      LOGOUT
                    </button>
                 </div>

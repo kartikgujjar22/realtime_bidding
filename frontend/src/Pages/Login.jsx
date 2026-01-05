@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Cookies from "js-cookie";
+import { useAuth } from '../context/AuthContext.jsx';
 
 const Login = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [status, setStatus] = useState({ loading: false, error: '' });
@@ -28,11 +30,7 @@ const Login = () => {
 
       if (!response.ok) throw new Error(data.message || 'Login failed');
 
-      Cookies.set('token', data.token, { expires: 7, secure: true, sameSite: 'strict' });
-
-      if (data.user){
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
+      login(data.user, data.token);
 
       navigate('/'); // Redirect to Home
       

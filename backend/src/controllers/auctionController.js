@@ -1,4 +1,5 @@
 const supabase = require("../config/supabase");
+const Joi = require("joi");
 
 const createAuction = async (req, res) => {
   try {
@@ -18,7 +19,7 @@ const createAuction = async (req, res) => {
       const fileName = `${req.user.id}_${Date.now()}.${fileExt}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("auction-images") // Your bucket name
+        .from("auctionProductsIMG") // Your bucket name
         .upload(fileName, req.file.buffer, {
           contentType: req.file.mimetype,
         });
@@ -27,7 +28,7 @@ const createAuction = async (req, res) => {
 
       // Get Public URL
       const { data: urlData } = supabase.storage
-        .from("auction-images")
+        .from("auctionProductsIMG")
         .getPublicUrl(fileName);
 
       imageUrl = urlData.publicUrl;

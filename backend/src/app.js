@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
-const cookieParser = require("cookie-parser"); // <--- FIX 4: Import this
+const cookieParser = require("cookie-parser");
 const logger = require("../logger");
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
@@ -15,13 +15,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // <--- FIX 4: Use this!
+app.use(cookieParser());
 
 // Import routes
 const authRoutes = require("./routes/auth");
 // Comment these out if you haven't created these files yet to prevent crashes
 // const uploadRoutes = require("./routes/upload");
-// const auctionRoutes = require("./routes/auctions");
+const auctionRoutes = require("./routes/auctionsRoutes");
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Realtime Bidding API!" });
@@ -30,9 +30,7 @@ app.get("/", (req, res) => {
 // Mount auth routes
 app.use("/api/auth", authRoutes);
 // app.use("/api/upload", uploadRoutes);
-// app.use("/api/auctions", auctionRoutes);
-
-// Error handlers... (Keep your existing error handling code here)
+app.use("/api/auctions", auctionRoutes);
 
 if (require.main === module) {
   app.listen(PORT, () => {

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const auctionController = require("../controllers/auctionController");
-const authMiddleware = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 const multer = require("multer");
 
 const storage = multer.memoryStorage();
@@ -12,7 +12,7 @@ const upload = multer({
 
 router.post(
   "/",
-  authMiddleware,
+  protect,
   upload.single("image"),
   auctionController.createAuction
 );

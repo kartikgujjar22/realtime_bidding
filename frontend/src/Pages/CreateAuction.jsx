@@ -10,44 +10,79 @@ const CreateAuction = () => {
     title: '',
     description: '',
     startingBid: '',
-    endTime: '',
-    imageUrl: ''
+    bidIncrement: '', 
+    endTime: ''
   });
+  
+  const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Handle Text Inputs
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Handle File Input
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Get token from local storage
     const token = Cookies.get('token');
     if (!token) {
       alert("You must be logged in to create an auction.");
       setLoading(false);
       return;
     }
+
+    // 2. CONSTRUCT FORMDATA: Required for File Uploads
+    const submissionData = new FormData();
+    submissionData.append('title', formData.title);
+    submissionData.append('description', formData.description);
     
+    submissionData.append('starting_price', formData.startingBid); 
+    
+    submissionData.append('bid_increment', formData.bidIncrement);
+    
+    submissionData.append('end_time', formData.endTime);
+
+    if (imageFile) {
+      submissionData.append('image', imageFile);
+    } else {
+        alert("Please select an image file.");
+        setLoading(false);
+        return;
+    }
+
     try {
-      const response = await fetch(`${API_URL}/auctions`, { // Adjust route as needed
+      const response = await fetch(`${API_URL}/auctions`, {
         method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
+        headers: {
+            // 'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData),
+        body: submissionData,
       });
 
-      if (!response.ok) throw new Error('Failed to create auction');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create auction');
+      }
       
-      navigate('/auctions'); // Redirect to listing page
+      console.log("Success:", data);
+      navigate('/auctions');
       
     } catch (err) {
+      console.error(err);
       alert("Error: " + err.message);
-      setLoading(false);
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -123,11 +158,26 @@ const CreateAuction = () => {
                             className="w-full bg-gray-50 border-2 border-black p-3 font-mono focus:bg-retro-cream focus:border-retro-orange"
                             placeholder="0.00"
                             min="1"
+                            step="0.01"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block font-bold text-retro-blue mb-2 uppercase text-sm">Bid Increment ($)</label>
+                        <input 
+                            type="number" 
+                            name="bidIncrement"
+                            onChange={handleChange}
+                            className="w-full bg-gray-50 border-2 border-black p-3 font-mono focus:bg-retro-cream focus:border-retro-orange"
+                            placeholder="Min. raise amount (e.g. 5.00)"
+                            min="0.50"
+                            step="0.01"
                             required
                         />
                     </div>
                     
-                    <div>
+                    <div className="col-span-2">
                         <label className="block font-bold text-retro-blue mb-2 uppercase text-sm">Auction End Date</label>
                         <input 
                             type="datetime-local" 
@@ -146,18 +196,18 @@ const CreateAuction = () => {
                     // Visual_Data
                 </h3>
                 <div>
-                    <label className="block font-bold text-retro-blue mb-2 uppercase text-sm">Image URL</label>
+                    <label className="block font-bold text-retro-blue mb-2 uppercase text-sm">Upload Image</label>
                     <div className="flex gap-2">
-                        <span className="bg-gray-200 border-2 border-black px-3 py-3 font-mono text-gray-500">HTTP://</span>
+                        {/* Changed to File Input */}
                         <input 
-                            type="text" 
-                            name="imageUrl"
-                            onChange={handleChange}
-                            className="w-full bg-gray-50 border-2 border-black p-3 font-mono focus:bg-retro-cream focus:border-retro-orange"
-                            placeholder="path-to-image.jpg"
+                            type="file" 
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="w-full bg-gray-50 border-2 border-black p-3 font-mono focus:bg-retro-cream focus:border-retro-orange file:mr-4 file:py-2 file:px-4 file:border-2 file:border-black file:text-sm file:font-bold file:bg-retro-orange file:text-white hover:file:bg-retro-blue"
+                            required
                         />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 font-mono">* Direct link to image required.</p>
+                    <p className="text-xs text-gray-500 mt-1 font-mono">* Supported formats: JPG, PNG (Max 5MB)</p>
                 </div>
             </div>
 
@@ -168,7 +218,7 @@ const CreateAuction = () => {
                     disabled={loading}
                     className="flex-1 bg-retro-red text-white font-display text-2xl py-4 border-2 border-black shadow-hard hover:translate-y-1 hover:shadow-none hover:bg-retro-orange transition-all uppercase"
                 >
-                    {loading ? 'Processing...' : 'Upload_Asset'}
+                    {loading ? 'UPLOADING...' : 'Upload_Asset'}
                 </button>
                 <button 
                     type="button"

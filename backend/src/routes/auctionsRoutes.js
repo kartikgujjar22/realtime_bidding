@@ -2,19 +2,8 @@ const express = require("express");
 const router = express.Router();
 const auctionController = require("../controllers/auctionController");
 const { protect } = require("../middleware/authMiddleware");
-const multer = require("multer");
+const { uploadImage } = require("../middleware/uploadMiddleware");
 
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-});
-
-router.post(
-  "/",
-  protect,
-  upload.single("image"),
-  auctionController.createAuction
-);
+router.post("/", protect, uploadImage, auctionController.createAuction);
 
 module.exports = router;

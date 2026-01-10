@@ -150,7 +150,7 @@ const CreateAuction = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block font-bold text-retro-blue mb-2 uppercase text-sm">Starting Bid ($)</label>
+                        <label className="block font-bold text-retro-blue mb-2 uppercase text-sm">Starting Bid (INR)</label>
                         <input 
                             type="number" 
                             name="startingBid"
@@ -164,7 +164,7 @@ const CreateAuction = () => {
                     </div>
 
                     <div>
-                        <label className="block font-bold text-retro-blue mb-2 uppercase text-sm">Bid Increment ($)</label>
+                        <label className="block font-bold text-retro-blue mb-2 uppercase text-sm">Bid Increment (INR)</label>
                         <input 
                             type="number" 
                             name="bidIncrement"

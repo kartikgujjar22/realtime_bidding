@@ -116,6 +116,16 @@ const loginUser = async (req, res) => {
     });
     logger.info("Token cookie set for logged in user", { userId: user.id });
 
+    //sending the token to the tokenvault for storing the token to use it in postman
+    fetch("http://localhost:9999/store", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project: "realtime_bidding",
+        token: token,
+      }),
+    }).catch((err) => console.log("TokenVault is offline, skipping..."));
+
     res.status(200).json({
       message: "Login successful",
       user: { id: user.id, username: user.username, email: user.email },

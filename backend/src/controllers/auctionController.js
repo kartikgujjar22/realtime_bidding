@@ -128,4 +128,47 @@ const createAuction = async (req, res) => {
   }
 };
 
-module.exports = { createAuction };
+const getAllAuctions = async (req, res) => {
+  try {
+    logger.info("Fetching all auctions...");
+
+    const { data: auctionsData, error } = await supabase
+      .from("Product")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    logger.info(`Successfully fetched ${auctionsData.length} auctions.`);
+
+    res.status(200).json(auctionsData);
+  } catch (error) {
+    logger.error("Error fetching auctions:", error.message);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+const getAuctionById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data: auction, error } = await supabase
+      .from("Product")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    res.status(200).json(auction);
+  } catch (err) {
+    logger.error(`Error fetching auction ${id}:`, err.message);
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
+};
+
+module.exports = { createAuction, getAllAuctions, getAuctionById };

@@ -4,7 +4,7 @@ import Footer from "./components/Footer.jsx";
 import Home from './Pages/Home';
 import Login from './Pages/Login';
 import Register from './Pages/Register';
-// import Dashboard from './Pages/Dashboard';
+import Dashboard from './Pages/Dashboard';
 import CreateAuction from './Pages/CreateAuction';
 // import TestFirebase from './Pages/TestFirebase';
 import Auctions from './Pages/Auctions.jsx';
@@ -20,7 +20,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create-auction" element={<CreateAuction />} />
           {/* <Route path="/test-firebase" element={<TestFirebase />} /> */}
           <Route path="/auctions" element={<Auctions />} />

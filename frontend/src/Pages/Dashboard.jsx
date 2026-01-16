@@ -30,7 +30,7 @@ const Dashboard = () => {
         const userData = await userRes.json();
         setUser(userData);
 
-        // 2. Fetch All Auctions (and filter for My Listings)
+        // 2. Fetch All Auctions 
         // In a real app, you'd want a specific endpoint like /auctions/my-auctions
         const auctionsRes = await fetch(`${API_URL}/auctions`);
         const auctionsData = await auctionsRes.json();
@@ -60,6 +60,36 @@ const Dashboard = () => {
       LOADING_COMMAND_CENTER...
     </div>
   );
+
+  // Add this function inside Dashboard component
+const handleAddFunds = async () => {
+    const amount = prompt("ENTER_AMOUNT_TO_DEPOSIT (System Mock):"); // Simple prompt for now
+    if (!amount || isNaN(amount)) return;
+
+    try {
+        const token = Cookies.get('token');
+        const res = await fetch(`${API_URL}/wallet/deposit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ amount: parseFloat(amount) })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+            alert("SUCCESS: FUNDS_TRANSFERRED");
+            // Update local state immediately so user sees new balance
+            setUser(prev => ({ ...prev, wallet_balance: data.new_balance }));
+        } else {
+            alert("ERROR: " + data.message);
+        }
+    } catch (err) {
+        alert("SYSTEM_FAILURE: " + err.message);
+    }
+};
 
   return (
     <div className="min-h-screen bg-retro-cream p-4 md:p-8 font-retro">
@@ -108,11 +138,11 @@ const Dashboard = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <button className="bg-black text-white py-3 font-mono text-sm uppercase hover:bg-gray-800">
+                        <button className="bg-black text-white py-3 font-mono text-sm uppercase hover:bg-gray-800" onClick={handleAddFunds}>
                             + Add_Funds
                         </button>
                         <button className="border-2 border-black py-3 font-mono text-sm uppercase hover:bg-gray-100">
-                            > History
+                            History
                         </button>
                     </div>
                 </div>
@@ -125,17 +155,17 @@ const Dashboard = () => {
                     <ul className="space-y-3 font-mono text-sm">
                         <li>
                             <Link to="/create-auction" className="flex items-center gap-2 hover:text-retro-orange transition-colors">
-                                <span className="text-retro-orange">></span> INITIATE_NEW_AUCTION
+                                <span className="text-retro-orange"></span> INITIATE_NEW_AUCTION
                             </Link>
                         </li>
                         <li>
                             <Link to="/auctions" className="flex items-center gap-2 hover:text-retro-orange transition-colors">
-                                <span className="text-retro-orange">></span> BROWSE_MARKETPLACE
+                                <span className="text-retro-orange"></span> BROWSE_MARKETPLACE
                             </Link>
                         </li>
                         <li>
                             <a href="#" className="flex items-center gap-2 hover:text-retro-orange transition-colors">
-                                <span className="text-retro-orange">></span> EDIT_PROFILE_DATA
+                                <span className="text-retro-orange"></span> EDIT_PROFILE_DATA
                             </a>
                         </li>
                     </ul>

@@ -22,7 +22,7 @@ const authRoutes = require("./routes/auth");
 // Comment these out if you haven't created these files yet to prevent crashes
 // const uploadRoutes = require("./routes/upload");
 const auctionRoutes = require("./routes/auctionsRoutes");
-const walletRoutes = require("./controllers/walletController");
+const walletRoutes = require("./routes/walletRoutes");
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Realtime Bidding API!" });

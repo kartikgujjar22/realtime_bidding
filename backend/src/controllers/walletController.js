@@ -13,7 +13,7 @@ const depositFunds = async (req, res) => {
   try {
     // 1. Get Current Balance
     const { data: user, error: userError } = await supabase
-      .from("users")
+      .from("User")
       .select("wallet_balance")
       .eq("id", userId)
       .single();
@@ -24,7 +24,7 @@ const depositFunds = async (req, res) => {
 
     // 2. Update User Balance
     const { error: updateError } = await supabase
-      .from("users")
+      .from("User")
       .update({ wallet_balance: newBalance })
       .eq("id", userId);
 
@@ -46,7 +46,7 @@ const depositFunds = async (req, res) => {
     }
 
     logger.info(
-      `User ${userId} deposited $${amount}. New Balance: $${newBalance}`
+      `User ${userId} deposited $${amount}. New Balance: $${newBalance}`,
     );
 
     res.status(200).json({

@@ -9,6 +9,7 @@ import CreateAuction from './Pages/CreateAuction';
 // import TestFirebase from './Pages/TestFirebase';
 import Auctions from './Pages/Auctions.jsx';
 import AuctionDetails from './Pages/AuctionDetails.jsx';
+import Wallet from "./Pages/Wallet.jsx";
 import './App.css';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
           <Route path="/auctions" element={<Auctions />} />
           <Route path="/auctions/:id" element={<AuctionDetails />} />
           <Route path="*" element={<div className="text-center mt-8">Page not found.</div>} />
+          <Route path="/wallet" element={<Wallet/>} />
         </Routes>
       </main>
       <Footer/>

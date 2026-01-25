@@ -36,7 +36,17 @@ const protect = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error(error);
+    console.error("JWT Verification Error:", error.message);
+
+    // Check if the error is due to token expiration
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        error: "Token expired",
+        expired: true
+      });
+    }
+
+    // Other JWT errors (invalid signature, malformed token, etc.)
     res.status(401).json({ error: "Not authorized, token failed" });
   }
 };
